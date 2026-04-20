@@ -1,11 +1,13 @@
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+
 import {
   Image,
-  Pressable,
-  SafeAreaView,
+  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 
@@ -63,15 +65,18 @@ const DELAY_EVENTS = [
 
 const RARE_EVENTS = [
   'A second line appears… but it is somehow worse.',
-  'You feel like today might be the day. It is not.',
   'You hear “Next!” but it was spiritually, not physically.',
   'You considered leaving. The line noticed.',
+  'The line moved in your heart, not in real life.',
 ];
 
 const INITIAL_LINE_SIZE = 8;
 const MAX_LOG_ITEMS = 10;
 
-const characterImages = [
+// change to 'girl' whenever you want
+const PLAYER_TYPE: 'boy' | 'girl' = 'boy';
+
+const queueCharacterImages = [
   require('../../assets/characters/char1.png'),
   require('../../assets/characters/char2.png'),
   require('../../assets/characters/char3.png'),
@@ -82,6 +87,10 @@ const characterImages = [
   require('../../assets/characters/char8.png'),
 ];
 
+const playerBoyImage = require('../../assets/characters/player-boy.png');
+const playerGirlImage = require('../../assets/characters/player-girl.png');
+const lineBackground = require('../../assets/backgrounds/line.png');
+
 function randomFrom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -89,19 +98,21 @@ function randomFrom<T>(arr: T[]): T {
 export default function Index() {
   const [line, setLine] = useState<Npc[]>([]);
   const [playerPosition, setPlayerPosition] = useState(INITIAL_LINE_SIZE + 1);
-  const [statusText, setStatusText] = useState('You joined the line.');
+  const [statusText, setStatusText] = useState('You entered the line willingly.');
   const [log, setLog] = useState<EventMessage[]>([]);
   const [timeWaited, setTimeWaited] = useState(0);
-  const [progress, setProgress] = useState(6);
+  const [progress, setProgress] = useState(1);
   const [achievements, setAchievements] = useState<string[]>([]);
   const [stepReady, setStepReady] = useState(false);
   const [lineClosedCount, setLineClosedCount] = useState(0);
   const [leaveUsed, setLeaveUsed] = useState(false);
 
   const nextId = useRef(1);
-  const stepIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const moveIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chaosIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const playerImage = PLAYER_TYPE === 'boy' ? playerBoyImage : playerGirlImage;
 
   const totalPeople = useMemo(() => line.length + 1, [line.length]);
 
@@ -113,13 +124,12 @@ export default function Index() {
       return {
         id: position,
         isPlayer,
-        name: isPlayer ? 'You' : line[index]?.name || 'Person',
         imageSource: isPlayer
-          ? characterImages[0]
-          : characterImages[index % characterImages.length],
+          ? playerImage
+          : queueCharacterImages[index % queueCharacterImages.length],
       };
     });
-  }, [line, totalPeople, playerPosition]);
+  }, [line, totalPeople, playerPosition, playerImage]);
 
   useEffect(() => {
     initializeGame();
@@ -147,13 +157,10 @@ export default function Index() {
   }, [playerPosition]);
 
   const cleanupIntervals = () => {
-    if (stepIntervalRef.current) clearInterval(stepIntervalRef.current);
+    if (timeIntervalRef.current) clearInterval(timeIntervalRef.current);
+    if (moveIntervalRef.current) clearInterval(moveIntervalRef.current);
     if (chaosIntervalRef.current) clearInterval(chaosIntervalRef.current);
-    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
   };
-
-  const randomMs = (min: number, max: number) =>
-    Math.floor(Math.random() * (max - min + 1)) + min;
 
   const addLog = (text: string) => {
     setLog((prev) => {
@@ -163,26 +170,21 @@ export default function Index() {
   };
 
   const unlockAchievement = (title: string) => {
-    setAchievements((prev) =>
-      prev.includes(title) ? prev : [...prev, title]
-    );
+    setAchievements((prev) => (prev.includes(title) ? prev : [...prev, title]));
   };
 
   const initializeGame = () => {
-    const startingLine: Npc[] = Array.from(
-      { length: INITIAL_LINE_SIZE },
-      (_, i) => ({
-        id: i + 1,
-        name: NPC_NAMES[i % NPC_NAMES.length],
-      })
-    );
+    const startingLine: Npc[] = Array.from({ length: INITIAL_LINE_SIZE }, (_, i) => ({
+      id: i + 1,
+      name: NPC_NAMES[i % NPC_NAMES.length],
+    }));
 
     setLine(startingLine);
     setPlayerPosition(startingLine.length + 1);
-    setStatusText('You joined the line.');
+    setStatusText('You entered the line willingly.');
     setLog([{ id: nextId.current++, text: 'You entered the line willingly.' }]);
     setTimeWaited(0);
-    setProgress(6);
+    setProgress(1);
     setAchievements([]);
     setStepReady(false);
     setLineClosedCount(0);
@@ -190,23 +192,24 @@ export default function Index() {
 
     cleanupIntervals();
 
-    timerIntervalRef.current = setInterval(() => {
+    timeIntervalRef.current = setInterval(() => {
       setTimeWaited((prev) => prev + 1);
     }, 1000);
 
-    stepIntervalRef.current = setInterval(() => {
+    moveIntervalRef.current = setInterval(() => {
       const shouldMove = Math.random() > 0.35;
+
       if (shouldMove) {
         setStepReady(true);
         addLog('The line moved. You may step forward.');
       } else {
         addLog(randomFrom(RARE_EVENTS));
       }
-    }, randomMs(7000, 12000));
+    }, 9000);
 
     chaosIntervalRef.current = setInterval(() => {
       runChaosEvent();
-    }, randomMs(5000, 9000));
+    }, 7000);
   };
 
   const runChaosEvent = () => {
@@ -220,7 +223,7 @@ export default function Index() {
     }
 
     if (roll < 0.65) {
-      const progressChanges = [-12, -8, -4, 5, 7, 10];
+      const progressChanges = [-8, -4, 5, 7, 10];
       const change =
         progressChanges[Math.floor(Math.random() * progressChanges.length)];
 
@@ -252,18 +255,29 @@ export default function Index() {
 
     setPlayerPosition((prev) => Math.max(1, prev - 1));
     setStepReady(false);
-    setProgress((prev) => Math.min(99, prev + Math.floor(Math.random() * 12) + 3));
+    setProgress((prev) => Math.min(99, prev + Math.floor(Math.random() * 10) + 5));
     setStatusText('You stepped forward.');
     addLog('You stepped forward.');
 
-    if (timeWaited > 90) {
-      const fourthWallChance = Math.random();
-      if (fourthWallChance > 0.6) {
-        const lineText = randomFrom(FOURTH_WALL_LINES);
-        setStatusText(lineText);
-        addLog(lineText);
-      }
+    if (timeWaited > 90 && Math.random() > 0.55) {
+      const lineText = randomFrom(FOURTH_WALL_LINES);
+      setStatusText(lineText);
+      addLog(lineText);
     }
+  };
+
+  const handleLeaveLine = () => {
+    setLeaveUsed(true);
+    setStatusText('You left the line and instantly regretted it.');
+    addLog('You left the line.');
+    unlockAchievement('Gave Up');
+
+    setTimeout(() => {
+      setStatusText('You rejoined at the back, humbled.');
+      addLog('You returned to the line at the back.');
+      setPlayerPosition(line.length + 1);
+      setProgress((prev) => Math.max(1, prev - 12));
+    }, 1000);
   };
 
   const handleFrontReached = () => {
@@ -294,513 +308,452 @@ export default function Index() {
     }, 1200);
   };
 
-  const handleLeaveLine = () => {
-    setLeaveUsed(true);
-    setStatusText('You left the line and instantly regretted it.');
-    addLog('You left the line. Your spot is gone forever.');
-    unlockAchievement('Gave Up');
-
-    setTimeout(() => {
-      setStatusText('You rejoined at the back, humbled.');
-      addLog('You returned to the line at the back.');
-      setPlayerPosition(line.length + 2);
-      setProgress((prev) => Math.max(1, prev - 15));
-    }, 1000);
+  const formatTime = () => {
+    const m = Math.floor(timeWaited / 60);
+    const s = timeWaited % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${String(secs).padStart(2, '0')}`;
-  };
-
-  const peopleInFront = Math.max(0, playerPosition - 1);
+  const peopleAhead = Math.max(0, playerPosition - 1);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.container}>
-          <Text style={styles.title}>Stand in Line Simulator</Text>
-          <Text style={styles.subtitle}>
-            How long are you willing to wait… for nothing?
-          </Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Stand in Line Simulator</Text>
+      <Text style={styles.subtitle}>
+        How long are you willing to wait… for nothing?
+      </Text>
 
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>Time Waited</Text>
-              <Text style={styles.statValue}>{formatTime(timeWaited)}</Text>
-            </View>
-
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>People Ahead</Text>
-              <Text style={styles.statValue}>{peopleInFront}</Text>
-            </View>
+      <View style={styles.statsRow}>
+        <View style={styles.statCard}>
+          <View style={styles.statIconWrap}>
+            <Ionicons name="time" size={22} color="#ffffff" />
           </View>
 
-          <View style={styles.progressWrap}>
-            <Text style={styles.progressLabel}>Almost There</Text>
-            <View style={styles.progressBarOuter}>
-              <View style={[styles.progressBarInner, { width: `${progress}%` }]} />
-            </View>
-            <Text style={styles.progressText}>{progress}%</Text>
+          <View style={styles.statTextWrap}>
+            <Text style={styles.statLabel}>Time Waited</Text>
+            <Text style={styles.statValue}>{formatTime()}</Text>
           </View>
-
-          <View style={styles.lineCard}>
-            <Text style={styles.sectionTitle}>The Line</Text>
-
-            <View style={styles.sceneShell}>
-              <View style={styles.counterZone}>
-                <View style={styles.cashierHead} />
-                <View style={styles.cashierBody} />
-                <View style={styles.counterDesk}>
-                  <Text style={styles.counterDeskText}>OPEN</Text>
-                </View>
-              </View>
-
-              <View style={styles.queueScene}>
-                <View style={styles.leftRopeTop} />
-                <View style={styles.leftRopeBottom} />
-                <View style={styles.rightRopeTop} />
-                <View style={styles.rightRopeBottom} />
-
-                <View style={styles.floorLane}>
-                  {visualQueue.map((person) => (
-                    <View key={person.id} style={styles.queueSpot}>
-                      <View style={styles.characterWrap}>
-                        {person.isPlayer && <View style={styles.playerGlow} />}
-
-                        <Image
-                          source={person.imageSource}
-                          style={[
-                            styles.characterImage,
-                            person.isPlayer && styles.playerImage,
-                          ]}
-                        />
-
-                        {person.isPlayer && (
-                          <View style={styles.youBubble}>
-                            <Text style={styles.youBubbleText}>YOU</Text>
-                          </View>
-                        )}
-                      </View>
-                    </View>
-                  ))}
-                </View>
-              </View>
-            </View>
-          </View>
-
-          <View style={styles.statusCard}>
-            <Text style={styles.sectionTitle}>Current Vibe</Text>
-            <Text style={styles.statusText}>{statusText}</Text>
-          </View>
-
-          <View style={styles.buttonRow}>
-            <Pressable
-              style={[
-                styles.primaryButton,
-                !stepReady && styles.primaryButtonDisabled,
-              ]}
-              onPress={handleStepForward}
-            >
-              <Text style={styles.primaryButtonText}>STEP FORWARD</Text>
-              <Text style={styles.primaryButtonSubtext}>
-                {stepReady ? '(the line moved)' : '(waiting...)'}
-              </Text>
-            </Pressable>
-
-            <Pressable style={styles.secondaryButton} onPress={handleLeaveLine}>
-              <Text style={styles.secondaryButtonText}>LEAVE LINE</Text>
-              <Text style={styles.secondaryButtonSubtext}>(lose your spot)</Text>
-            </Pressable>
-          </View>
-
-          <View style={styles.bottomRow}>
-            <View style={styles.logCard}>
-              <Text style={styles.sectionTitle}>Events</Text>
-              <ScrollView style={styles.logList} nestedScrollEnabled>
-                {log.map((item) => (
-                  <Text key={item.id} style={styles.logItem}>
-                    • {item.text}
-                  </Text>
-                ))}
-              </ScrollView>
-            </View>
-
-            <View style={styles.achievementCard}>
-              <Text style={styles.sectionTitle}>Achievements</Text>
-              {achievements.length === 0 ? (
-                <Text style={styles.emptyText}>None yet. Incredible.</Text>
-              ) : (
-                achievements.map((item) => (
-                  <Text key={item} style={styles.achievementItem}>
-                    🏆 {item}
-                  </Text>
-                ))
-              )}
-              {leaveUsed && (
-                <Text style={styles.achievementItem}>💀 You learned nothing.</Text>
-              )}
-            </View>
-          </View>
-
-          <Pressable style={styles.resetButton} onPress={initializeGame}>
-            <Text style={styles.resetButtonText}>RESET SUFFERING</Text>
-          </Pressable>
         </View>
-      </ScrollView>
-    </SafeAreaView>
+
+        <View style={styles.statCard}>
+          <View style={styles.statIconWrap}>
+            <MaterialCommunityIcons name="account-group" size={22} color="#ffffff" />
+          </View>
+
+          <View style={styles.statTextWrap}>
+            <Text style={styles.statLabel}>People Ahead</Text>
+            <Text style={styles.statValue}>{peopleAhead}</Text>
+          </View>
+        </View>
+      </View>
+
+        <View style={styles.progressCard}>
+          <Text style={styles.progressLabel}>Almost There</Text>
+
+          <View style={styles.progressRow}>
+            <View style={styles.progressTrack}>
+              <View
+                style={[
+                  styles.progressFill,
+                  { width: `${Math.min(progress, 100)}%` },
+                ]}
+              />
+            </View>
+
+            <Text style={styles.progressPercent}>{progress}%</Text>
+          </View>
+        </View>
+
+      <View style={styles.mainRow}>
+        <View style={styles.sideCard}>
+          <Text style={styles.sideTitle}>Events</Text>
+          <ScrollView
+            style={styles.eventsScroll}
+            contentContainerStyle={styles.eventsScrollContent}
+            showsVerticalScrollIndicator
+          >
+            {log.map((item) => (
+              <Text key={item.id} style={styles.eventText}>
+                • {item.text}
+              </Text>
+            ))}
+          </ScrollView>
+        </View>
+
+        <View style={styles.centerCard}>
+          <Text style={styles.sideTitle}>The Line</Text>
+
+          <ImageBackground
+            source={lineBackground}
+            style={styles.scene}
+            imageStyle={styles.sceneImage}
+            resizeMode="cover"
+          >
+          <View style={styles.queue}>
+            {visualQueue.map((person, i) => {
+              const scale = person.isPlayer ? 1 : Math.max(0.62, 1 - i * 0.06);
+
+              return (
+                <View
+                  key={person.id}
+                  style={[
+                    styles.queueItem,
+                    { transform: [{ scale }] },
+                  ]}
+                >
+                  {person.isPlayer && <View style={styles.playerGlow} />}
+
+                  <Image
+                    source={person.imageSource}
+                    style={person.isPlayer ? styles.playerImage : styles.characterImage}
+                  />
+
+                  {person.isPlayer && (
+                    <View style={styles.youBubble}>
+                      <Text style={styles.youBubbleText}>YOU</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+          </ImageBackground>
+        </View>
+
+        <View style={styles.sideCard}>
+          <Text style={styles.sideTitle}>Current Vibe</Text>
+          <Text style={styles.vibe}>{statusText}</Text>
+
+          <Text style={[styles.sideTitle, { marginTop: 18 }]}>Achievements</Text>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {achievements.length === 0 ? (
+              <Text style={styles.eventText}>None yet. Incredible.</Text>
+            ) : (
+              achievements.map((item) => (
+                <Text key={item} style={styles.eventText}>
+                  🏆 {item}
+                </Text>
+              ))
+            )}
+            {leaveUsed && <Text style={styles.eventText}>💀 You learned nothing.</Text>}
+          </ScrollView>
+        </View>
+      </View>
+
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={[styles.primaryBtn, !stepReady && styles.primaryBtnDisabled]}
+          onPress={handleStepForward}
+        >
+          <Text style={styles.btnText}>STEP FORWARD</Text>
+          <Text style={styles.btnSubText}>
+            {stepReady ? '(the line moved)' : '(waiting...)'}
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.dangerBtn} onPress={handleLeaveLine}>
+          <Text style={styles.btnText}>LEAVE LINE</Text>
+          <Text style={styles.btnSubTextDanger}>(lose your spot)</Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity style={styles.resetBtn} onPress={initializeGame}>
+        <Text style={styles.resetText}>RESET SUFFERING</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: '#09090B',
-  },
-  scrollContent: {
-    paddingBottom: 40,
-  },
   container: {
     flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 16,
+    backgroundColor: '#05070c',
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 12,
   },
+
   title: {
-    color: '#ffffff',
-    fontSize: 30,
-    fontWeight: '900',
+    color: 'white',
+    fontSize: 22,
+    fontWeight: '800',
     textAlign: 'center',
+    marginBottom: 2,
   },
+
   subtitle: {
-    color: '#a1a1aa',
-    fontSize: 15,
+    color: '#94a3b8',
     textAlign: 'center',
-    marginTop: 6,
-    marginBottom: 16,
+    marginBottom: 10,
+    fontSize: 11,
   },
-  statsRow: {
+
+statsRow: {
+  flexDirection: 'row',
+  gap: 8,
+  marginBottom: 10,
+},
+
+statCard: {
+  flex: 1,
+  backgroundColor: '#0b132b',
+  borderRadius: 16,
+  paddingVertical: 12,
+  paddingHorizontal: 14,
+  borderWidth: 1,
+  borderColor: '#1f2937',
+  flexDirection: 'row',
+  alignItems: 'center',
+},
+
+statIconWrap: {
+  width: 44,
+  height: 44,
+  borderRadius: 22,
+  backgroundColor: '#7c3aed',
+  alignItems: 'center',
+  justifyContent: 'center',
+  marginRight: 12,
+},
+
+
+statTextWrap: {
+  flex: 1,
+},
+
+statLabel: {
+  color: '#cbd5e1',
+  fontSize: 11,
+  marginBottom: 4,
+},
+
+statValue: {
+  color: '#ffffff',
+  fontSize: 20,
+  fontWeight: '800',
+},
+
+progressCard: {
+  backgroundColor: '#0b132b',
+  borderRadius: 16,
+  paddingTop: 10,
+  paddingBottom: 10,
+  paddingHorizontal: 14,
+  borderWidth: 1,
+  borderColor: '#1f2937',
+  marginBottom: 12,
+},
+
+progressLabel: {
+  color: '#ffffff',
+  fontSize: 11,
+  fontWeight: '600',
+  marginBottom: 8,
+},
+
+progressRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  gap: 10,
+},
+
+progressTrack: {
+  flex: 1,
+  height: 10,
+  backgroundColor: '#2a3344',
+  borderRadius: 999,
+  overflow: 'hidden',
+},
+
+progressFill: {
+  height: '100%',
+  backgroundColor: '#7c3aed',
+  borderRadius: 999,
+  minWidth: 10,
+},
+
+progressPercent: {
+  color: '#a78bfa',
+  fontSize: 11,
+  fontWeight: '700',
+},
+
+  mainRow: {
     flexDirection: 'row',
     gap: 10,
     marginBottom: 14,
+    alignItems: 'stretch',
   },
-  statCard: {
+
+  sideCard: {
     flex: 1,
-    backgroundColor: '#131316',
-    borderRadius: 20,
-    padding: 14,
+    backgroundColor: '#0b132b',
+    borderRadius: 18,
+    padding: 12,
+    height: 430,
     borderWidth: 1,
-    borderColor: '#23232A',
+    borderColor: '#1f2937',
   },
-  statLabel: {
-    color: '#9ca3af',
-    fontSize: 12,
-    marginBottom: 6,
+
+  centerCard: {
+    flex: 1.6,
+    backgroundColor: '#0b132b',
+    borderRadius: 18,
+    padding: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#1f2937',
   },
-  statValue: {
-    color: '#ffffff',
-    fontSize: 22,
+
+  sideTitle: {
+    color: '#a78bfa',
     fontWeight: '800',
-  },
-  progressWrap: {
-    backgroundColor: '#131316',
-    borderRadius: 20,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#23232A',
-    marginBottom: 14,
-  },
-  progressLabel: {
-    color: '#ffffff',
     fontSize: 15,
-    fontWeight: '800',
     marginBottom: 8,
   },
-  progressBarOuter: {
-    height: 16,
-    backgroundColor: '#23232A',
-    borderRadius: 999,
-    overflow: 'hidden',
+
+  eventText: {
+    color: '#d1d5db',
+    marginBottom: 10,
+    lineHeight: 22,
+    fontSize: 13,
   },
-  progressBarInner: {
-    height: '100%',
-    backgroundColor: '#7C3AED',
-    borderRadius: 999,
-  },
-  progressText: {
-    color: '#c4b5fd',
-    marginTop: 8,
-    fontSize: 12,
-    textAlign: 'right',
-    fontWeight: '700',
-  },
-  lineCard: {
-    backgroundColor: '#131316',
-    borderRadius: 24,
+
+  vibe: {
+    color: 'white',
+    backgroundColor: '#4c1d95',
     padding: 14,
-    borderWidth: 1,
-    borderColor: '#23232A',
-    marginBottom: 14,
+    borderRadius: 16,
+    lineHeight: 24,
+    fontSize: 14,
   },
-  sectionTitle: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '900',
-    marginBottom: 12,
-  },
-  sceneShell: {
-    borderRadius: 22,
+
+  scene: {
+    height: 430,
     overflow: 'hidden',
-    backgroundColor: '#0F0F12',
-    borderWidth: 1,
-    borderColor: '#23232A',
   },
-  counterZone: {
-    alignItems: 'center',
-    paddingTop: 14,
-    paddingBottom: 10,
-    backgroundColor: '#101014',
+
+  sceneImage: {
+    borderRadius: 16,
   },
-  cashierHead: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#E5B58F',
-    marginBottom: -2,
-    zIndex: 2,
-  },
-  cashierBody: {
-    width: 42,
-    height: 28,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    borderBottomLeftRadius: 10,
-    borderBottomRightRadius: 10,
-    backgroundColor: '#F97316',
-    zIndex: 1,
-  },
-  counterDesk: {
-    marginTop: -2,
-    width: 150,
-    backgroundColor: '#3F3F46',
-    borderRadius: 12,
-    paddingVertical: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#52525B',
-  },
-  counterDeskText: {
-    color: '#D9F99D',
-    fontWeight: '900',
-    fontSize: 16,
-    letterSpacing: 0.5,
-  },
-  queueScene: {
-    position: 'relative',
-    backgroundColor: '#D6D3D1',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-  },
-  floorLane: {
-    backgroundColor: '#E7E5E4',
-    borderRadius: 20,
-    paddingTop: 14,
-    paddingBottom: 20,
-    alignItems: 'center',
-    gap: 10,
-    minHeight: 520,
-  },
-  queueSpot: {
-    width: '100%',
+
+  queue: {
+    position: 'absolute',
+    left: '50%',
+    top: 118,
+    transform: [{ translateX: -10 }],
     alignItems: 'center',
   },
-  characterWrap: {
-    position: 'relative',
+
+  queueItem: {
+    marginBottom: -12,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 64,
   },
+
   characterImage: {
-    width: 66,
-    height: 66,
-    resizeMode: 'contain',
+     width: 40,
+      height: 40,
+      resizeMode: 'contain',
   },
+
   playerImage: {
-    width: 72,
-    height: 72,
+     width: 48,
+  height: 48,
+  resizeMode: 'contain',
   },
+
   playerGlow: {
     position: 'absolute',
     bottom: 2,
-    width: 58,
+    width: 54,
     height: 16,
     borderRadius: 999,
-    backgroundColor: 'rgba(59,130,246,0.30)',
+    backgroundColor: 'rgba(59,130,246,0.35)',
   },
+
   youBubble: {
     position: 'absolute',
-    right: -54,
+    right: -64,
     top: 18,
-    backgroundColor: '#2563EB',
+    backgroundColor: '#3b82f6',
     borderRadius: 999,
-    paddingHorizontal: 10,
+    paddingHorizontal: 12,
     paddingVertical: 5,
   },
+
   youBubbleText: {
-    color: '#ffffff',
+    color: '#fff',
     fontSize: 11,
-    fontWeight: '900',
+    fontWeight: '800',
   },
-  leftRopeTop: {
-    position: 'absolute',
-    left: 8,
-    top: 80,
-    width: 10,
-    height: 110,
-    borderRadius: 999,
-    backgroundColor: '#71717A',
-  },
-  leftRopeBottom: {
-    position: 'absolute',
-    left: 8,
-    bottom: 80,
-    width: 10,
-    height: 110,
-    borderRadius: 999,
-    backgroundColor: '#71717A',
-  },
-  rightRopeTop: {
-    position: 'absolute',
-    right: 8,
-    top: 80,
-    width: 10,
-    height: 110,
-    borderRadius: 999,
-    backgroundColor: '#71717A',
-  },
-  rightRopeBottom: {
-    position: 'absolute',
-    right: 8,
-    bottom: 80,
-    width: 10,
-    height: 110,
-    borderRadius: 999,
-    backgroundColor: '#71717A',
-  },
-  statusCard: {
-    backgroundColor: '#131316',
-    borderRadius: 20,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#23232A',
-    marginBottom: 14,
-  },
-  statusText: {
-    color: '#E4E4E7',
-    fontSize: 15,
-    lineHeight: 22,
-  },
+
   buttonRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 14,
+    marginBottom: 12,
   },
-  primaryButton: {
-    flex: 1.15,
-    backgroundColor: '#6D28D9',
-    borderRadius: 20,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  primaryButtonDisabled: {
-    backgroundColor: '#4C1D95',
-    opacity: 0.85,
-  },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: 0.4,
-  },
-  primaryButtonSubtext: {
-    color: '#DDD6FE',
-    marginTop: 4,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  secondaryButton: {
-    flex: 0.95,
-    backgroundColor: '#7F1D1D',
-    borderRadius: 20,
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '900',
-    letterSpacing: 0.4,
-  },
-  secondaryButtonSubtext: {
-    color: '#FECACA',
-    marginTop: 4,
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  bottomRow: {
-    flexDirection: 'row',
-    gap: 10,
-    minHeight: 220,
-  },
-  logCard: {
-    flex: 1.15,
-    backgroundColor: '#131316',
-    borderRadius: 20,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#23232A',
-  },
-  achievementCard: {
-    flex: 0.95,
-    backgroundColor: '#131316',
-    borderRadius: 20,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#23232A',
-  },
-  logList: {
-    maxHeight: 210,
-  },
-  logItem: {
-    color: '#E4E4E7',
-    fontSize: 13,
-    marginBottom: 9,
-    lineHeight: 18,
-  },
-  achievementItem: {
-    color: '#E4E4E7',
-    fontSize: 13,
-    marginBottom: 9,
-    lineHeight: 18,
-  },
-  emptyText: {
-    color: '#A1A1AA',
-    fontSize: 13,
-  },
-  resetButton: {
-    marginTop: 14,
-    backgroundColor: '#18181B',
-    borderColor: '#27272A',
-    borderWidth: 1,
+
+  primaryBtn: {
+    flex: 1,
+    backgroundColor: '#6d28d9',
+    paddingVertical: 18,
     borderRadius: 18,
-    paddingVertical: 16,
     alignItems: 'center',
   },
-  resetButtonText: {
-    color: '#ffffff',
+
+  primaryBtnDisabled: {
+    opacity: 0.75,
+  },
+
+  dangerBtn: {
+    flex: 1,
+    backgroundColor: '#8b1e1e',
+    paddingVertical: 18,
+    borderRadius: 18,
+    alignItems: 'center',
+  },
+
+  btnText: {
+    color: 'white',
+    fontWeight: '800',
+    fontSize: 16,
+  },
+
+  btnSubText: {
+    color: '#ddd6fe',
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  btnSubTextDanger: {
+    color: '#fecaca',
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+
+  resetBtn: {
+    backgroundColor: '#111827',
+    padding: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#1f2937',
+  },
+
+  resetText: {
+    color: '#d1d5db',
+    fontWeight: '800',
     fontSize: 14,
-    fontWeight: '900',
-    letterSpacing: 0.5,
+  },
+
+  eventsScroll: {
+    flex: 1,
+  },
+
+  eventsScrollContent: {
+    paddingBottom: 8,
   },
 });
