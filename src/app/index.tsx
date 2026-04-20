@@ -445,20 +445,33 @@ export default function Index() {
           style={[styles.primaryBtn, !stepReady && styles.primaryBtnDisabled]}
           onPress={handleStepForward}
         >
-          <Text style={styles.btnText}>STEP FORWARD</Text>
-          <Text style={styles.btnSubText}>
-            {stepReady ? '(the line moved)' : '(waiting...)'}
-          </Text>
+          <View style={styles.buttonInner}>
+            <Text style={styles.buttonIcon}>🚶</Text>
+            <View>
+              <Text style={styles.btnText}>STEP FORWARD</Text>
+              <Text style={styles.btnSubText}>
+                {stepReady ? '(the line moved)' : '(waiting...)'}
+              </Text>
+            </View>
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.dangerBtn} onPress={handleLeaveLine}>
-          <Text style={styles.btnText}>LEAVE LINE</Text>
-          <Text style={styles.btnSubTextDanger}>(lose your spot)</Text>
+          <View style={styles.buttonInner}>
+            <Text style={styles.buttonIcon}>🚪</Text>
+            <View>
+              <Text style={styles.btnText}>LEAVE LINE</Text>
+              <Text style={styles.btnSubTextDanger}>(lose your spot)</Text>
+            </View>
+          </View>
         </TouchableOpacity>
       </View>
 
       <TouchableOpacity style={styles.resetBtn} onPress={initializeGame}>
-        <Text style={styles.resetText}>RESET SUFFERING</Text>
+        <View style={styles.resetInner}>
+          <Text style={styles.resetIcon}>↻</Text>
+          <Text style={styles.resetText}>RESET SUFFERING</Text>
+        </View>
       </TouchableOpacity>
     </View>
   );
@@ -691,29 +704,41 @@ progressPercent: {
   buttonRow: {
     flexDirection: 'row',
     gap: 10,
-    marginBottom: 12,
+    marginBottom: 10,
   },
 
   primaryBtn: {
     flex: 1,
     backgroundColor: '#6d28d9',
-    paddingVertical: 18,
     borderRadius: 18,
-    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
   },
 
   primaryBtnDisabled: {
-    opacity: 0.75,
+    opacity: 0.78,
   },
 
   dangerBtn: {
     flex: 1,
     backgroundColor: '#8b1e1e',
-    paddingVertical: 18,
     borderRadius: 18,
-    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    justifyContent: 'center',
   },
 
+  buttonInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  buttonIcon: {
+    fontSize: 26,
+    marginRight: 12,
+  },
   btnText: {
     color: 'white',
     fontWeight: '800',
@@ -721,32 +746,44 @@ progressPercent: {
   },
 
   btnSubText: {
-    color: '#ddd6fe',
-    marginTop: 4,
-    fontSize: 12,
-    fontWeight: '700',
+    color: 'white',
+    fontWeight: '800',
+    fontSize: 14,
+    lineHeight: 18,
   },
 
   btnSubTextDanger: {
     color: '#fecaca',
-    marginTop: 4,
-    fontSize: 12,
+    marginTop: 2,
+    fontSize: 10,
     fontWeight: '700',
   },
 
   resetBtn: {
     backgroundColor: '#111827',
-    padding: 16,
+    paddingVertical: 10,
     borderRadius: 16,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#1f2937',
   },
 
+  resetInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  resetIcon: {
+    color: '#94a3b8',
+    fontSize: 18,
+    marginRight: 8,
+  },
+
   resetText: {
-    color: '#d1d5db',
+    color: '#94a3b8',
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 12,
   },
 
   eventsScroll: {
