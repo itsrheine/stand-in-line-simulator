@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Image,
   Pressable,
   SafeAreaView,
   ScrollView,
@@ -70,68 +71,19 @@ const RARE_EVENTS = [
 const INITIAL_LINE_SIZE = 8;
 const MAX_LOG_ITEMS = 10;
 
-const SHIRT_COLORS = [
-  '#6366F1',
-  '#8B5CF6',
-  '#F59E0B',
-  '#10B981',
-  '#3B82F6',
-  '#EF4444',
-  '#F97316',
-  '#14B8A6',
-  '#EC4899',
-  '#84CC16',
-];
-
-const SKIN_COLORS = [
-  '#F3C7A6',
-  '#E5B58F',
-  '#D69B72',
-  '#B97A56',
-  '#8A5A3C',
+const characterImages = [
+  require('../../assets/characters/char1.png'),
+  require('../../assets/characters/char2.png'),
+  require('../../assets/characters/char3.png'),
+  require('../../assets/characters/char4.png'),
+  require('../../assets/characters/char5.png'),
+  require('../../assets/characters/char6.png'),
+  require('../../assets/characters/char7.png'),
+  require('../../assets/characters/char8.png'),
 ];
 
 function randomFrom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function QueueCharacter({
-  isPlayer,
-  shirtColor,
-  skinColor,
-}: {
-  isPlayer: boolean;
-  shirtColor: string;
-  skinColor: string;
-}) {
-  return (
-    <View style={styles.characterWrap}>
-      {isPlayer && <View style={styles.playerGlow} />}
-
-      <View style={[styles.characterHead, { backgroundColor: skinColor }]} />
-
-      <View style={styles.hairCap} />
-
-      <View
-        style={[
-          styles.characterBody,
-          { backgroundColor: shirtColor },
-          isPlayer && styles.playerBody,
-        ]}
-      />
-
-      <View style={styles.characterLegsRow}>
-        <View style={styles.characterLeg} />
-        <View style={styles.characterLeg} />
-      </View>
-
-      {isPlayer && (
-        <View style={styles.youBubble}>
-          <Text style={styles.youBubbleText}>YOU</Text>
-        </View>
-      )}
-    </View>
-  );
 }
 
 export default function Index() {
@@ -162,10 +114,9 @@ export default function Index() {
         id: position,
         isPlayer,
         name: isPlayer ? 'You' : line[index]?.name || 'Person',
-        shirtColor: isPlayer
-          ? '#2563EB'
-          : SHIRT_COLORS[index % SHIRT_COLORS.length],
-        skinColor: SKIN_COLORS[index % SKIN_COLORS.length],
+        imageSource: isPlayer
+          ? characterImages[0]
+          : characterImages[index % characterImages.length],
       };
     });
   }, [line, totalPeople, playerPosition]);
@@ -415,11 +366,23 @@ export default function Index() {
                 <View style={styles.floorLane}>
                   {visualQueue.map((person) => (
                     <View key={person.id} style={styles.queueSpot}>
-                      <QueueCharacter
-                        isPlayer={person.isPlayer}
-                        shirtColor={person.shirtColor}
-                        skinColor={person.skinColor}
-                      />
+                      <View style={styles.characterWrap}>
+                        {person.isPlayer && <View style={styles.playerGlow} />}
+
+                        <Image
+                          source={person.imageSource}
+                          style={[
+                            styles.characterImage,
+                            person.isPlayer && styles.playerImage,
+                          ]}
+                        />
+
+                        {person.isPlayer && (
+                          <View style={styles.youBubble}>
+                            <Text style={styles.youBubbleText}>YOU</Text>
+                          </View>
+                        )}
+                      </View>
                     </View>
                   ))}
                 </View>
@@ -652,6 +615,43 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
   },
+  characterWrap: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 64,
+  },
+  characterImage: {
+    width: 66,
+    height: 66,
+    resizeMode: 'contain',
+  },
+  playerImage: {
+    width: 72,
+    height: 72,
+  },
+  playerGlow: {
+    position: 'absolute',
+    bottom: 2,
+    width: 58,
+    height: 16,
+    borderRadius: 999,
+    backgroundColor: 'rgba(59,130,246,0.30)',
+  },
+  youBubble: {
+    position: 'absolute',
+    right: -54,
+    top: 18,
+    backgroundColor: '#2563EB',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  youBubbleText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '900',
+  },
   leftRopeTop: {
     position: 'absolute',
     left: 8,
@@ -687,75 +687,6 @@ const styles = StyleSheet.create({
     height: 110,
     borderRadius: 999,
     backgroundColor: '#71717A',
-  },
-  characterWrap: {
-    position: 'relative',
-    width: 70,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  playerGlow: {
-    position: 'absolute',
-    bottom: 6,
-    width: 62,
-    height: 18,
-    borderRadius: 999,
-    backgroundColor: 'rgba(59,130,246,0.28)',
-  },
-  characterHead: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    zIndex: 3,
-  },
-  hairCap: {
-    position: 'absolute',
-    top: -1,
-    width: 24,
-    height: 12,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    backgroundColor: '#3F3F46',
-    zIndex: 4,
-  },
-  characterBody: {
-    marginTop: -3,
-    width: 34,
-    height: 34,
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    borderBottomLeftRadius: 12,
-    borderBottomRightRadius: 12,
-    zIndex: 2,
-  },
-  playerBody: {
-    borderWidth: 2,
-    borderColor: '#93C5FD',
-  },
-  characterLegsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    marginTop: -2,
-  },
-  characterLeg: {
-    width: 7,
-    height: 12,
-    borderRadius: 4,
-    backgroundColor: '#1F2937',
-  },
-  youBubble: {
-    position: 'absolute',
-    right: -46,
-    top: 20,
-    backgroundColor: '#2563EB',
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-  },
-  youBubbleText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '900',
   },
   statusCard: {
     backgroundColor: '#131316',
