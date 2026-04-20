@@ -1,6 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-
 import {
   Image,
   ImageBackground,
@@ -71,9 +70,9 @@ const RARE_EVENTS = [
 ];
 
 const INITIAL_LINE_SIZE = 8;
-const MAX_LOG_ITEMS = 10;
+const MAX_LOG_ITEMS = 30;
 
-// change to 'girl' whenever you want
+// change whenever you want
 const PLAYER_TYPE: 'boy' | 'girl' = 'boy';
 
 const queueCharacterImages = [
@@ -102,7 +101,6 @@ export default function Index() {
   const [log, setLog] = useState<EventMessage[]>([]);
   const [timeWaited, setTimeWaited] = useState(0);
   const [progress, setProgress] = useState(1);
-  const [achievements, setAchievements] = useState<string[]>([]);
   const [stepReady, setStepReady] = useState(false);
   const [lineClosedCount, setLineClosedCount] = useState(0);
   const [leaveUsed, setLeaveUsed] = useState(false);
@@ -113,8 +111,18 @@ export default function Index() {
   const chaosIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const playerImage = PLAYER_TYPE === 'boy' ? playerBoyImage : playerGirlImage;
-
   const totalPeople = useMemo(() => line.length + 1, [line.length]);
+
+  const peopleAhead = Math.max(0, playerPosition - 1);
+
+  const achieved30Seconds = timeWaited >= 30;
+  const achievedStillHere = timeWaited >= 60;
+  const achievedQuestioning = timeWaited >= 120;
+  const lineVeteranProgressMinutes = Math.min(timeWaited / 60, 5);
+  const lineVeteranPercent = Math.min((lineVeteranProgressMinutes / 5) * 100, 100);
+  const reachedFrontUnlocked = playerPosition === 1 || lineClosedCount > 0;
+  const didntMatterUnlocked = lineClosedCount > 0;
+  const gaveUpUnlocked = leaveUsed;
 
   const visualQueue = useMemo(() => {
     return Array.from({ length: totalPeople }).map((_, index) => {
@@ -140,13 +148,6 @@ export default function Index() {
   }, []);
 
   useEffect(() => {
-    if (timeWaited === 30) unlockAchievement('Waited 30 Seconds');
-    if (timeWaited === 60) unlockAchievement('Still Here?');
-    if (timeWaited === 120) unlockAchievement('Questioning Life Choices');
-    if (timeWaited === 300) unlockAchievement('Line Veteran');
-  }, [timeWaited]);
-
-  useEffect(() => {
     if (playerPosition <= 2 && playerPosition > 1) {
       setStatusText('You are near the front. Something feels wrong.');
     }
@@ -169,10 +170,6 @@ export default function Index() {
     });
   };
 
-  const unlockAchievement = (title: string) => {
-    setAchievements((prev) => (prev.includes(title) ? prev : [...prev, title]));
-  };
-
   const initializeGame = () => {
     const startingLine: Npc[] = Array.from({ length: INITIAL_LINE_SIZE }, (_, i) => ({
       id: i + 1,
@@ -185,7 +182,6 @@ export default function Index() {
     setLog([{ id: nextId.current++, text: 'You entered the line willingly.' }]);
     setTimeWaited(0);
     setProgress(1);
-    setAchievements([]);
     setStepReady(false);
     setLineClosedCount(0);
     setLeaveUsed(false);
@@ -270,8 +266,6 @@ export default function Index() {
     setLeaveUsed(true);
     setStatusText('You left the line and instantly regretted it.');
     addLog('You left the line.');
-    unlockAchievement('Gave Up');
-
     setTimeout(() => {
       setStatusText('You rejoined at the back, humbled.');
       addLog('You returned to the line at the back.');
@@ -281,7 +275,6 @@ export default function Index() {
   };
 
   const handleFrontReached = () => {
-    unlockAchievement('Reached the Front');
     addLog('You reached the front.');
     setStatusText('You made it to the front.');
 
@@ -304,7 +297,6 @@ export default function Index() {
       setPlayerPosition(newLine.length + 1);
       setProgress(Math.floor(Math.random() * 12) + 3);
       setLineClosedCount((prev) => prev + 1);
-      unlockAchievement('Didn’t Matter');
     }, 1200);
   };
 
@@ -313,8 +305,6 @@ export default function Index() {
     const s = timeWaited % 60;
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
-
-  const peopleAhead = Math.max(0, playerPosition - 1);
 
   return (
     <View style={styles.container}>
@@ -328,7 +318,6 @@ export default function Index() {
           <View style={styles.statIconWrap}>
             <Ionicons name="time" size={22} color="#ffffff" />
           </View>
-
           <View style={styles.statTextWrap}>
             <Text style={styles.statLabel}>Time Waited</Text>
             <Text style={styles.statValue}>{formatTime()}</Text>
@@ -339,7 +328,6 @@ export default function Index() {
           <View style={styles.statIconWrap}>
             <MaterialCommunityIcons name="account-group" size={22} color="#ffffff" />
           </View>
-
           <View style={styles.statTextWrap}>
             <Text style={styles.statLabel}>People Ahead</Text>
             <Text style={styles.statValue}>{peopleAhead}</Text>
@@ -347,22 +335,20 @@ export default function Index() {
         </View>
       </View>
 
-        <View style={styles.progressCard}>
-          <Text style={styles.progressLabel}>Almost There</Text>
-
-          <View style={styles.progressRow}>
-            <View style={styles.progressTrack}>
-              <View
-                style={[
-                  styles.progressFill,
-                  { width: `${Math.min(progress, 100)}%` },
-                ]}
-              />
-            </View>
-
-            <Text style={styles.progressPercent}>{progress}%</Text>
+      <View style={styles.progressCard}>
+        <Text style={styles.progressLabel}>Almost There</Text>
+        <View style={styles.progressRow}>
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${Math.min(progress, 100)}%` },
+              ]}
+            />
           </View>
+          <Text style={styles.progressPercent}>{progress}%</Text>
         </View>
+      </View>
 
       <View style={styles.mainRow}>
         <View style={styles.sideCard}>
@@ -398,19 +384,26 @@ export default function Index() {
                   key={person.id}
                   style={[
                     styles.queueItem,
-                    { transform: [{ scale }] },
+                    {
+                      transform: [{ scale }],
+                      top: i * 55, // ✅ spacing fix
+                    },
                   ]}
                 >
                   {person.isPlayer && <View style={styles.playerGlow} />}
 
                   <Image
                     source={person.imageSource}
-                    style={person.isPlayer ? styles.playerImage : styles.characterImage}
+                    style={
+                      person.isPlayer
+                        ? styles.playerImage
+                        : styles.characterImage
+                    }
                   />
 
                   {person.isPlayer && (
                     <View style={styles.youBubble}>
-                      <Text style={styles.youBubbleText}>YOU</Text>
+                      <Text style={styles.youText}>YOU</Text>
                     </View>
                   )}
                 </View>
@@ -424,19 +417,65 @@ export default function Index() {
           <Text style={styles.sideTitle}>Current Vibe</Text>
           <Text style={styles.vibe}>{statusText}</Text>
 
-          <Text style={[styles.sideTitle, { marginTop: 18 }]}>Achievements</Text>
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {achievements.length === 0 ? (
-              <Text style={styles.eventText}>None yet. Incredible.</Text>
-            ) : (
-              achievements.map((item) => (
-                <Text key={item} style={styles.eventText}>
-                  🏆 {item}
-                </Text>
-              ))
-            )}
-            {leaveUsed && <Text style={styles.eventText}>💀 You learned nothing.</Text>}
-          </ScrollView>
+          <View style={styles.achievementsCard}>
+            <Text style={styles.sideTitle}>Achievements</Text>
+
+            <View style={styles.achievementRow}>
+              <Text style={styles.achievementIcon}>⏳</Text>
+              <Text style={styles.achievementText}>Waited 30 Seconds</Text>
+              <Text style={styles.achievementCheck}>{achieved30Seconds ? '✔' : ''}</Text>
+            </View>
+
+            <View style={styles.achievementRow}>
+              <Text style={styles.achievementIcon}>🏆</Text>
+              <Text style={styles.achievementText}>Still Here?</Text>
+              <Text style={styles.achievementCheck}>{achievedStillHere ? '✔' : ''}</Text>
+            </View>
+
+            <View style={styles.achievementRow}>
+              <Text style={styles.achievementIcon}>🧠</Text>
+              <Text style={styles.achievementText}>Questioning Life Choices</Text>
+              <Text style={styles.achievementCheck}>{achievedQuestioning ? '✔' : ''}</Text>
+            </View>
+
+            <View style={styles.achievementBlock}>
+              <View style={styles.achievementRow}>
+                <Text style={styles.achievementIcon}>⭐</Text>
+                <Text style={styles.achievementText}>Line Veteran</Text>
+              </View>
+
+              <View style={styles.miniProgressTrack}>
+                <View
+                  style={[
+                    styles.miniProgressFill,
+                    { width: `${lineVeteranPercent}%` },
+                  ]}
+                />
+              </View>
+
+              <Text style={styles.miniProgressText}>
+                {lineVeteranProgressMinutes.toFixed(1)} / 5 min
+              </Text>
+            </View>
+
+            <View style={styles.achievementRow}>
+              <Text style={styles.achievementIcon}>🚫</Text>
+              <Text style={styles.achievementText}>Reached the Front</Text>
+              <Text style={styles.lockedText}>{reachedFrontUnlocked ? '✔' : '0/1'}</Text>
+            </View>
+
+            <View style={styles.achievementRow}>
+              <Text style={styles.achievementIcon}>💀</Text>
+              <Text style={styles.achievementText}>Didn’t Matter</Text>
+              <Text style={styles.lockedText}>{didntMatterUnlocked ? '✔' : '0/1'}</Text>
+            </View>
+
+            <View style={styles.achievementRow}>
+              <Text style={styles.achievementIcon}>🏳️</Text>
+              <Text style={styles.achievementText}>Gave Up</Text>
+              <Text style={styles.lockedText}>{gaveUpUnlocked ? '✔' : '0/1'}</Text>
+            </View>
+          </View>
         </View>
       </View>
 
@@ -478,6 +517,7 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
+  /* ---------- LAYOUT ---------- */
   container: {
     flex: 1,
     backgroundColor: '#05070c',
@@ -486,6 +526,7 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
 
+  /* ---------- TITLE ---------- */
   title: {
     color: 'white',
     fontSize: 22,
@@ -501,206 +542,158 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-statsRow: {
-  flexDirection: 'row',
-  gap: 8,
-  marginBottom: 10,
-},
-
-statCard: {
-  flex: 1,
-  backgroundColor: '#0b132b',
-  borderRadius: 16,
-  paddingVertical: 12,
-  paddingHorizontal: 14,
-  borderWidth: 1,
-  borderColor: '#1f2937',
-  flexDirection: 'row',
-  alignItems: 'center',
-},
-
-statIconWrap: {
-  width: 44,
-  height: 44,
-  borderRadius: 22,
-  backgroundColor: '#7c3aed',
-  alignItems: 'center',
-  justifyContent: 'center',
-  marginRight: 12,
-},
-
-
-statTextWrap: {
-  flex: 1,
-},
-
-statLabel: {
-  color: '#cbd5e1',
-  fontSize: 11,
-  marginBottom: 4,
-},
-
-statValue: {
-  color: '#ffffff',
-  fontSize: 20,
-  fontWeight: '800',
-},
-
-progressCard: {
-  backgroundColor: '#0b132b',
-  borderRadius: 16,
-  paddingTop: 10,
-  paddingBottom: 10,
-  paddingHorizontal: 14,
-  borderWidth: 1,
-  borderColor: '#1f2937',
-  marginBottom: 12,
-},
-
-progressLabel: {
-  color: '#ffffff',
-  fontSize: 11,
-  fontWeight: '600',
-  marginBottom: 8,
-},
-
-progressRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  gap: 10,
-},
-
-progressTrack: {
-  flex: 1,
-  height: 10,
-  backgroundColor: '#2a3344',
-  borderRadius: 999,
-  overflow: 'hidden',
-},
-
-progressFill: {
-  height: '100%',
-  backgroundColor: '#7c3aed',
-  borderRadius: 999,
-  minWidth: 10,
-},
-
-progressPercent: {
-  color: '#a78bfa',
-  fontSize: 11,
-  fontWeight: '700',
-},
-
-  mainRow: {
+  /* ---------- TOP STATS ---------- */
+  statsRow: {
     flexDirection: 'row',
-    gap: 10,
-    marginBottom: 14,
-    alignItems: 'stretch',
+    gap: 8,
+    marginBottom: 10,
   },
 
-  sideCard: {
+  statCard: {
     flex: 1,
     backgroundColor: '#0b132b',
-    borderRadius: 18,
-    padding: 12,
-    height: 430,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderWidth: 1,
     borderColor: '#1f2937',
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 
-  centerCard: {
-    flex: 1.6,
-    backgroundColor: '#0b132b',
-    borderRadius: 18,
-    padding: 12,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#1f2937',
+  statIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#7c3aed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
 
-  sideTitle: {
-    color: '#a78bfa',
+  statLabel: {
+    color: '#cbd5e1',
+    fontSize: 11,
+    marginBottom: 4,
+  },
+
+  statValue: {
+    color: '#ffffff',
+    fontSize: 20,
     fontWeight: '800',
-    fontSize: 15,
+  },
+
+  /* ---------- PROGRESS ---------- */
+  progressCard: {
+    backgroundColor: '#0b132b',
+    borderRadius: 16,
+    paddingTop: 10,
+    paddingBottom: 10,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    marginBottom: 12,
+  },
+
+  progressLabel: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '600',
     marginBottom: 8,
   },
 
-  eventText: {
-    color: '#d1d5db',
-    marginBottom: 10,
-    lineHeight: 22,
-    fontSize: 13,
+  progressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
   },
 
-  vibe: {
-    color: 'white',
-    backgroundColor: '#4c1d95',
-    padding: 14,
-    borderRadius: 16,
-    lineHeight: 24,
-    fontSize: 14,
-  },
-
-  scene: {
-    height: 430,
+  progressTrack: {
+    flex: 1,
+    height: 10,
+    backgroundColor: '#2a3344',
+    borderRadius: 999,
     overflow: 'hidden',
   },
 
-  sceneImage: {
-    borderRadius: 16,
-  },
-
-  queue: {
-    position: 'absolute',
-    left: '50%',
-    top: 118,
-    transform: [{ translateX: -10 }],
-    alignItems: 'center',
-  },
-
-  queueItem: {
-    marginBottom: -12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-
-  characterImage: {
-     width: 40,
-      height: 40,
-      resizeMode: 'contain',
-  },
-
-  playerImage: {
-     width: 48,
-  height: 48,
-  resizeMode: 'contain',
-  },
-
-  playerGlow: {
-    position: 'absolute',
-    bottom: 2,
-    width: 54,
-    height: 16,
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#7c3aed',
     borderRadius: 999,
-    backgroundColor: 'rgba(59,130,246,0.35)',
+    minWidth: 10,
   },
 
-  youBubble: {
-    position: 'absolute',
-    right: -64,
-    top: 18,
-    backgroundColor: '#3b82f6',
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-  },
-
-  youBubbleText: {
-    color: '#fff',
+  progressPercent: {
+    color: '#a78bfa',
     fontSize: 11,
-    fontWeight: '800',
+    fontWeight: '700',
   },
 
+  /* ---------- SIDE TITLES ---------- */
+  sideTitle: {
+    color: '#a78bfa',
+    fontSize: 14,
+    fontWeight: '800',
+    marginBottom: 10,
+  },
+
+  /* ---------- ACHIEVEMENTS ---------- */
+  achievementsCard: {
+    marginTop: 10,
+  },
+
+  achievementRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+
+  achievementIcon: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+
+  achievementText: {
+    flex: 1,
+    color: '#e5e7eb',
+    fontSize: 12,
+  },
+
+  achievementCheck: {
+    color: '#22c55e',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+
+  lockedText: {
+    color: '#64748b',
+    fontSize: 11,
+  },
+
+  achievementBlock: {
+    marginBottom: 12,
+  },
+
+  miniProgressTrack: {
+    height: 6,
+    backgroundColor: '#2a3344',
+    borderRadius: 999,
+    overflow: 'hidden',
+    marginTop: 4,
+  },
+
+  miniProgressFill: {
+    height: '100%',
+    backgroundColor: '#7c3aed',
+  },
+
+  miniProgressText: {
+    color: '#a78bfa',
+    fontSize: 10,
+    marginTop: 2,
+  },
+
+  /* ---------- BUTTONS ---------- */
   buttonRow: {
     flexDirection: 'row',
     gap: 10,
@@ -711,7 +704,7 @@ progressPercent: {
     flex: 1,
     backgroundColor: '#6d28d9',
     borderRadius: 18,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     justifyContent: 'center',
   },
@@ -724,7 +717,7 @@ progressPercent: {
     flex: 1,
     backgroundColor: '#8b1e1e',
     borderRadius: 18,
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     justifyContent: 'center',
   },
@@ -739,17 +732,19 @@ progressPercent: {
     fontSize: 26,
     marginRight: 12,
   },
-  btnText: {
-    color: 'white',
-    fontWeight: '800',
-    fontSize: 16,
-  },
 
-  btnSubText: {
+  btnText: {
     color: 'white',
     fontWeight: '800',
     fontSize: 14,
     lineHeight: 18,
+  },
+
+  btnSubText: {
+    color: '#ddd6fe',
+    marginTop: 2,
+    fontSize: 10,
+    fontWeight: '700',
   },
 
   btnSubTextDanger: {
@@ -786,11 +781,128 @@ progressPercent: {
     fontSize: 12,
   },
 
+  statTextWrap: {
+    flex: 1,
+  },
+
+  mainRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
+  },
+
+  sideCard: {
+    flex: 1,
+    backgroundColor: '#0b132b',
+    borderRadius: 18,
+    padding: 12,
+    height: 430, // matches your scene height
+    borderWidth: 1,
+    borderColor: '#1f2937',
+  },
+
+  /* ---------- CENTER CARD (THE LINE) ---------- */
+  centerCard: {
+    flex: 1.6,
+    backgroundColor: '#0b132b',
+    borderRadius: 18,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    overflow: 'hidden',
+  },
+
+  /* ---------- SCENE (IMAGE AREA) ---------- */
+  scene: {
+    height: 430,
+    overflow: 'hidden',
+  },
+
+  sceneImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 14,
+  },
+
+  /* ---------- EVENTS SCROLL ---------- */
   eventsScroll: {
     flex: 1,
   },
 
   eventsScrollContent: {
     paddingBottom: 8,
+  },
+
+  /* ---------- EVENT TEXT ---------- */
+  eventText: {
+    color: '#cbd5e1',
+    fontSize: 12,
+    marginBottom: 10,
+  },
+
+  /* ---------- VIBE CARD ---------- */
+  vibe: {
+    backgroundColor: '#0b132b',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    marginBottom: 10,
+  },
+
+  /* ---------- "YOU" SPEECH BUBBLE ---------- */
+  youBubble: {
+    position: 'absolute',
+    top: 8,
+    alignSelf: 'center',
+    backgroundColor: '#7c3aed',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    zIndex: 5,
+  },
+
+  youText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  /* ---------- PLAYER (YOU) ---------- */
+  playerImage: {
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    zIndex: 3,
+  },
+
+  playerGlow: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(124, 58, 237, 0.25)',
+    zIndex: 2,
+  },
+
+    /* ---------- OTHER CHARACTERS ---------- */
+  characterImage: {
+    width: 60,
+    height: 60,
+    resizeMode: 'contain',
+  },
+
+  /* ---------- QUEUE POSITIONING ---------- */
+  queueItem: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+
+  queue: {
+    position: 'absolute',
+    top: 40,
+    left: '50%',
+    transform: [{ translateX: -20 }],
+    alignItems: 'center',
   },
 });
