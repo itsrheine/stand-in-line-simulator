@@ -90,6 +90,11 @@ const playerBoyImage = require('../../assets/characters/player-boy.png');
 const playerGirlImage = require('../../assets/characters/player-girl.png');
 const lineBackground = require('../../assets/backgrounds/line.png');
 
+const vibeCharacters = {
+  boy: require('../assets/vibe_default_boy.png'),
+  girl: require('../assets/vibe_default_girl.png'),
+};
+
 function randomFrom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
@@ -112,7 +117,6 @@ export default function Index() {
 
   const playerImage = PLAYER_TYPE === 'boy' ? playerBoyImage : playerGirlImage;
   const totalPeople = useMemo(() => line.length + 1, [line.length]);
-
   const peopleAhead = Math.max(0, playerPosition - 1);
 
   const achieved30Seconds = timeWaited >= 30;
@@ -137,7 +141,7 @@ export default function Index() {
           : queueCharacterImages[index % queueCharacterImages.length],
       };
     });
-  }, [line, totalPeople, playerPosition, playerImage]);
+  }, [totalPeople, playerPosition, playerImage]);
 
   useEffect(() => {
     initializeGame();
@@ -220,9 +224,7 @@ export default function Index() {
 
     if (roll < 0.65) {
       const progressChanges = [-8, -4, 5, 7, 10];
-      const change =
-        progressChanges[Math.floor(Math.random() * progressChanges.length)];
-
+      const change = progressChanges[Math.floor(Math.random() * progressChanges.length)];
       const fakeProgress = Math.max(1, Math.min(99, progress + change));
       setProgress(fakeProgress);
       addLog(`Progress updated: ${fakeProgress}% almost there.`);
@@ -266,6 +268,7 @@ export default function Index() {
     setLeaveUsed(true);
     setStatusText('You left the line and instantly regretted it.');
     addLog('You left the line.');
+
     setTimeout(() => {
       setStatusText('You rejoined at the back, humbled.');
       addLog('You returned to the line at the back.');
@@ -399,47 +402,56 @@ export default function Index() {
             imageStyle={styles.sceneImage}
             resizeMode="cover"
           >
-          <View style={styles.queue}>
-            {visualQueue.map((person, i) => {
-              const scale = person.isPlayer ? 1 : Math.max(0.62, 1 - i * 0.06);
+            <View style={styles.queue}>
+              {visualQueue.map((person, i) => {
+                const scale = person.isPlayer ? 1 : Math.max(0.62, 1 - i * 0.06);
 
-              return (
-                <View
-                  key={person.id}
-                  style={[
-                    styles.queueItem,
-                    {
-                      transform: [{ scale }],
-                      top: i * 55, // ✅ spacing fix
-                    },
-                  ]}
-                >
-                  {person.isPlayer && <View style={styles.playerGlow} />}
+                return (
+                  <View
+                    key={person.id}
+                    style={[
+                      styles.queueItem,
+                      {
+                        transform: [{ scale }],
+                        top: i * 55,
+                      },
+                    ]}
+                  >
+                    {person.isPlayer && <View style={styles.playerGlow} />}
 
-                  <Image
-                    source={person.imageSource}
-                    style={
-                      person.isPlayer
-                        ? styles.playerImage
-                        : styles.characterImage
-                    }
-                  />
+                    <Image
+                      source={person.imageSource}
+                      style={person.isPlayer ? styles.playerImage : styles.characterImage}
+                    />
 
-                  {person.isPlayer && (
-                    <View style={styles.youBubble}>
-                      <Text style={styles.youText}>YOU</Text>
-                    </View>
-                  )}
-                </View>
-              );
-            })}
-          </View>
+                    {person.isPlayer && (
+                      <View style={styles.youBubble}>
+                        <Text style={styles.youText}>YOU</Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </View>
           </ImageBackground>
         </View>
 
         <View style={styles.sideCard}>
           <Text style={styles.sideTitle}>Current Vibe</Text>
-          <Text style={styles.vibe}>{statusText}</Text>
+
+          <View style={styles.vibeBubble}>
+            <Text style={styles.vibeBubbleText}>{statusText}</Text>
+            <View style={styles.vibeBubbleTail} />
+          </View>
+
+          <View style={styles.vibeCharacterArea}>
+            <View style={[styles.vibeDot, styles.vibeDot1]} />
+            <View style={[styles.vibeDot, styles.vibeDot2]} />
+            <View style={[styles.vibeDot, styles.vibeDot3]} />
+            <View style={[styles.vibeDot, styles.vibeDot4]} />
+
+            <Image source={playerImage} style={styles.vibeCharacterImage} />
+          </View>
 
           <View style={styles.achievementsCard}>
             <Text style={styles.sideTitle}>Achievements</Text>
@@ -450,17 +462,23 @@ export default function Index() {
               <Text style={styles.achievementCheck}>{achieved30Seconds ? '✔' : ''}</Text>
             </View>
 
+            <View style={styles.achievementDivider} />
+
             <View style={styles.achievementRow}>
               <Text style={styles.achievementIcon}>🏆</Text>
               <Text style={styles.achievementText}>Still Here?</Text>
               <Text style={styles.achievementCheck}>{achievedStillHere ? '✔' : ''}</Text>
             </View>
 
+            <View style={styles.achievementDivider} />
+
             <View style={styles.achievementRow}>
               <Text style={styles.achievementIcon}>🧠</Text>
               <Text style={styles.achievementText}>Questioning Life Choices</Text>
               <Text style={styles.achievementCheck}>{achievedQuestioning ? '✔' : ''}</Text>
             </View>
+
+            <View style={styles.achievementDivider} />
 
             <View style={styles.achievementBlock}>
               <View style={styles.achievementRow}>
@@ -482,17 +500,23 @@ export default function Index() {
               </Text>
             </View>
 
+            <View style={styles.achievementDivider} />
+
             <View style={styles.achievementRow}>
               <Text style={styles.achievementIcon}>🚫</Text>
               <Text style={styles.achievementText}>Reached the Front</Text>
               <Text style={styles.lockedText}>{reachedFrontUnlocked ? '✔' : '0/1'}</Text>
             </View>
 
+            <View style={styles.achievementDivider} />
+
             <View style={styles.achievementRow}>
               <Text style={styles.achievementIcon}>💀</Text>
               <Text style={styles.achievementText}>Didn’t Matter</Text>
               <Text style={styles.lockedText}>{didntMatterUnlocked ? '✔' : '0/1'}</Text>
             </View>
+
+            <View style={styles.achievementDivider} />
 
             <View style={styles.achievementRow}>
               <Text style={styles.achievementIcon}>🏳️</Text>
@@ -541,7 +565,6 @@ export default function Index() {
 }
 
 const styles = StyleSheet.create({
-  /* ---------- LAYOUT ---------- */
   container: {
     flex: 1,
     backgroundColor: '#05070c',
@@ -550,7 +573,6 @@ const styles = StyleSheet.create({
     paddingBottom: 12,
   },
 
-  /* ---------- TITLE ---------- */
   title: {
     color: 'white',
     fontSize: 22,
@@ -566,7 +588,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
 
-  /* ---------- TOP STATS ---------- */
   statsRow: {
     flexDirection: 'row',
     gap: 8,
@@ -595,6 +616,10 @@ const styles = StyleSheet.create({
     marginRight: 12,
   },
 
+  statTextWrap: {
+    flex: 1,
+  },
+
   statLabel: {
     color: '#cbd5e1',
     fontSize: 11,
@@ -607,7 +632,6 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
-  /* ---------- PROGRESS ---------- */
   progressCard: {
     backgroundColor: '#0b132b',
     borderRadius: 16,
@@ -653,71 +677,304 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  /* ---------- SIDE TITLES ---------- */
-  sideTitle: {
-    color: '#a78bfa',
-    fontSize: 14,
-    fontWeight: '800',
-    marginBottom: 10,
+  mainRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 12,
   },
 
-  /* ---------- ACHIEVEMENTS ---------- */
+  sideCard: {
+    flex: 1,
+    backgroundColor: '#0b132b',
+    borderRadius: 18,
+    padding: 10,
+    height: 430,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+  },
+
+  centerCard: {
+    flex: 1.6,
+    backgroundColor: '#0b132b',
+    borderRadius: 18,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#1f2937',
+    overflow: 'hidden',
+  },
+
+  sideTitle: {
+    color: '#a78bfa',
+    fontSize: 13,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+
+  scene: {
+    height: 430,
+    overflow: 'hidden',
+  },
+
+  sceneImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 14,
+  },
+
+  queue: {
+    position: 'absolute',
+    top: 40,
+    left: '50%',
+    transform: [{ translateX: -20 }],
+    alignItems: 'center',
+  },
+
+  queueItem: {
+    position: 'absolute',
+    alignItems: 'center',
+  },
+
+  characterImage: {
+    width: 60,
+    height: 60,
+    resizeMode: 'contain',
+  },
+
+  playerImage: {
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    zIndex: 3,
+  },
+
+  playerGlow: {
+    position: 'absolute',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: 'rgba(124, 58, 237, 0.25)',
+    zIndex: 2,
+  },
+
+  youBubble: {
+    position: 'absolute',
+    top: 8,
+    alignSelf: 'center',
+    backgroundColor: '#7c3aed',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    zIndex: 5,
+  },
+
+  youText: {
+    color: 'white',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+
+  eventsScroll: {
+    flex: 1,
+  },
+
+  eventsScrollContent: {
+    paddingBottom: 8,
+  },
+
+  eventRowWrap: {
+    marginBottom: 12,
+  },
+
+  eventRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+
+  eventIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    marginTop: 2,
+  },
+
+  eventIconText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+
+  eventContent: {
+    flex: 1,
+  },
+
+  eventTime: {
+    color: '#cbd5e1',
+    fontSize: 11,
+    marginBottom: 4,
+  },
+
+  eventBody: {
+    color: '#e5e7eb',
+    fontSize: 12,
+    lineHeight: 19,
+  },
+
+  eventDivider: {
+    height: 1,
+    backgroundColor: '#1f2937',
+    marginTop: 12,
+    marginLeft: 44,
+  },
+
+  vibeBubble: {
+    backgroundColor: '#4c1d95',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 8,
+    position: 'relative',
+  },
+
+  vibeBubbleText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 19,
+  },
+
+  vibeBubbleTail: {
+    position: 'absolute',
+    bottom: -6,
+    right: 22,
+    width: 14,
+    height: 14,
+    backgroundColor: '#4c1d95',
+    transform: [{ rotate: '45deg' }],
+    borderRadius: 3,
+  },
+
+  vibeCharacterArea: {
+    position: 'relative',
+    height: 96,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+
+  vibeCharacterImage: {
+    width: 88,
+    height: 88,
+    resizeMode: 'contain',
+    zIndex: 2,
+  },
+
+  vibeDot: {
+    position: 'absolute',
+    borderRadius: 999,
+    backgroundColor: '#5b21b6',
+  },
+
+  vibeDot1: {
+    width: 6,
+    height: 6,
+    left: 14,
+    top: 18,
+  },
+
+  vibeDot2: {
+    width: 8,
+    height: 8,
+    left: 22,
+    bottom: 20,
+    backgroundColor: '#312e81',
+  },
+
+  vibeDot3: {
+    width: 6,
+    height: 6,
+    right: 16,
+    top: 14,
+    backgroundColor: '#6d28d9',
+  },
+
+  vibeDot4: {
+    width: 10,
+    height: 10,
+    right: 24,
+    bottom: 18,
+    backgroundColor: '#4338ca',
+  },
+
   achievementsCard: {
-    marginTop: 10,
+    marginTop: 2,
   },
 
   achievementRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 5,
   },
 
   achievementIcon: {
-    fontSize: 18,
-    marginRight: 10,
+    fontSize: 16,
+    marginRight: 8,
+    width: 20,
   },
 
   achievementText: {
     flex: 1,
     color: '#e5e7eb',
-    fontSize: 12,
+    fontSize: 10.5,
+    lineHeight: 14,
   },
 
   achievementCheck: {
     color: '#22c55e',
     fontWeight: '800',
-    fontSize: 14,
+    fontSize: 13,
   },
 
   lockedText: {
     color: '#64748b',
-    fontSize: 11,
+    fontSize: 10,
+    fontWeight: '700',
+  },
+
+  achievementDivider: {
+    height: 1,
+    backgroundColor: '#1f2937',
+    marginBottom: 5,
   },
 
   achievementBlock: {
-    marginBottom: 12,
+    marginBottom: 6,
   },
 
   miniProgressTrack: {
-    height: 6,
+    height: 5,
     backgroundColor: '#2a3344',
     borderRadius: 999,
     overflow: 'hidden',
-    marginTop: 4,
+    marginTop: 2,
+    marginBottom: 3,
   },
 
   miniProgressFill: {
     height: '100%',
     backgroundColor: '#7c3aed',
+    borderRadius: 999,
   },
 
   miniProgressText: {
     color: '#a78bfa',
-    fontSize: 10,
-    marginTop: 2,
+    fontSize: 9,
+    fontWeight: '700',
   },
 
-  /* ---------- BUTTONS ---------- */
   buttonRow: {
     flexDirection: 'row',
     gap: 10,
@@ -804,170 +1061,4 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     fontSize: 12,
   },
-
-  statTextWrap: {
-    flex: 1,
-  },
-
-  mainRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginBottom: 12,
-  },
-
-  sideCard: {
-    flex: 1,
-    backgroundColor: '#0b132b',
-    borderRadius: 18,
-    padding: 12,
-    height: 430, // matches your scene height
-    borderWidth: 1,
-    borderColor: '#1f2937',
-  },
-
-  /* ---------- CENTER CARD (THE LINE) ---------- */
-  centerCard: {
-    flex: 1.6,
-    backgroundColor: '#0b132b',
-    borderRadius: 18,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#1f2937',
-    overflow: 'hidden',
-  },
-
-  /* ---------- SCENE (IMAGE AREA) ---------- */
-  scene: {
-    height: 430,
-    overflow: 'hidden',
-  },
-
-  sceneImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 14,
-  },
-
-  /* ---------- EVENTS SCROLL ---------- */
-  eventsScroll: {
-    flex: 1,
-  },
-
-  eventsScrollContent: {
-    paddingBottom: 8,
-  },
-
-  eventRowWrap: {
-    marginBottom: 12,
-  },
-
-  eventRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-
-  eventIconCircle: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 10,
-    marginTop: 2,
-  },
-
-  eventIconText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-
-  eventContent: {
-    flex: 1,
-  },
-
-  eventTime: {
-    color: '#cbd5e1',
-    fontSize: 11,
-    marginBottom: 4,
-  },
-
-  eventBody: {
-    color: '#e5e7eb',
-    fontSize: 12,
-    lineHeight: 19,
-  },
-
-  eventDivider: {
-    height: 1,
-    backgroundColor: '#1f2937',
-    marginTop: 12,
-    marginLeft: 44,
-  },
-
-  /* ---------- VIBE CARD ---------- */
-  vibe: {
-    backgroundColor: '#0b132b',
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#1f2937',
-    marginBottom: 10,
-  },
-
-  /* ---------- "YOU" SPEECH BUBBLE ---------- */
-  youBubble: {
-    position: 'absolute',
-    top: 8,
-    alignSelf: 'center',
-    backgroundColor: '#7c3aed',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    zIndex: 5,
-  },
-
-  youText: {
-    color: 'white',
-    fontSize: 10,
-    fontWeight: '800',
-  },
-
-  /* ---------- PLAYER (YOU) ---------- */
-  playerImage: {
-    width: 70,
-    height: 70,
-    resizeMode: 'contain',
-    zIndex: 3,
-  },
-
-  playerGlow: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(124, 58, 237, 0.25)',
-    zIndex: 2,
-  },
-
-    /* ---------- OTHER CHARACTERS ---------- */
-  characterImage: {
-    width: 60,
-    height: 60,
-    resizeMode: 'contain',
-  },
-
-  /* ---------- QUEUE POSITIONING ---------- */
-  queueItem: {
-    position: 'absolute',
-    alignItems: 'center',
-  },
-
-  queue: {
-  position: 'absolute',
-  top: 40,
-  left: '50%',
-  transform: [{ translateX: -20 }],
-  alignItems: 'center',
-},
 });
