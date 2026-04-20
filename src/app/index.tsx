@@ -353,16 +353,40 @@ export default function Index() {
       <View style={styles.mainRow}>
         <View style={styles.sideCard}>
           <Text style={styles.sideTitle}>Events</Text>
+
           <ScrollView
             style={styles.eventsScroll}
             contentContainerStyle={styles.eventsScrollContent}
-            showsVerticalScrollIndicator
+            showsVerticalScrollIndicator={false}
           >
-            {log.map((item) => (
-              <Text key={item.id} style={styles.eventText}>
-                • {item.text}
-              </Text>
-            ))}
+            {log.map((item, index) => {
+              const eventIcons = ['⬆', '↗', '💬', '👤', '🟣'];
+              const eventColors = ['#65a30d', '#3b82f6', '#d97706', '#b45309', '#7c3aed'];
+
+              const icon = eventIcons[index % eventIcons.length];
+              const bgColor = eventColors[index % eventColors.length];
+
+              const mins = Math.floor((timeWaited - index * 12) / 60);
+              const secs = Math.max(0, (timeWaited - index * 12) % 60);
+              const timestamp = `${Math.max(0, mins)}:${String(secs).padStart(2, '0')}`;
+
+              return (
+                <View key={item.id} style={styles.eventRowWrap}>
+                  <View style={styles.eventRow}>
+                    <View style={[styles.eventIconCircle, { backgroundColor: bgColor }]}>
+                      <Text style={styles.eventIconText}>{icon}</Text>
+                    </View>
+
+                    <View style={styles.eventContent}>
+                      <Text style={styles.eventTime}>{timestamp}</Text>
+                      <Text style={styles.eventBody}>{item.text}</Text>
+                    </View>
+                  </View>
+
+                  {index !== log.length - 1 && <View style={styles.eventDivider} />}
+                </View>
+              );
+            })}
           </ScrollView>
         </View>
 
@@ -833,11 +857,52 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
 
-  /* ---------- EVENT TEXT ---------- */
-  eventText: {
+  eventRowWrap: {
+    marginBottom: 12,
+  },
+
+  eventRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+  },
+
+  eventIconCircle: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+    marginTop: 2,
+  },
+
+  eventIconText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+
+  eventContent: {
+    flex: 1,
+  },
+
+  eventTime: {
     color: '#cbd5e1',
+    fontSize: 11,
+    marginBottom: 4,
+  },
+
+  eventBody: {
+    color: '#e5e7eb',
     fontSize: 12,
-    marginBottom: 10,
+    lineHeight: 19,
+  },
+
+  eventDivider: {
+    height: 1,
+    backgroundColor: '#1f2937',
+    marginTop: 12,
+    marginLeft: 44,
   },
 
   /* ---------- VIBE CARD ---------- */
@@ -899,10 +964,10 @@ const styles = StyleSheet.create({
   },
 
   queue: {
-    position: 'absolute',
-    top: 40,
-    left: '50%',
-    transform: [{ translateX: -20 }],
-    alignItems: 'center',
-  },
+  position: 'absolute',
+  top: 40,
+  left: '50%',
+  transform: [{ translateX: -20 }],
+  alignItems: 'center',
+},
 });
